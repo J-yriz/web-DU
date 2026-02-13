@@ -7,7 +7,7 @@ import (
 	"github.com/jung-kurt/gofpdf"
 )
 
-func GenerateInvoicePDF(invoice dto.Invoice, path string) error {
+func GenerateInvoicePDF(invoice dto.InvoiceResponse, path string) error {
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.AddPage()
 
@@ -19,7 +19,7 @@ func GenerateInvoicePDF(invoice dto.Invoice, path string) error {
 	pdf.Cell(40, 10, fmt.Sprintf("Invoice ID : %s", invoice.ID))
 	pdf.Ln(8)
 
-	pdf.Cell(40, 10, fmt.Sprintf("Email      : %s", invoice.UserEmail))
+	pdf.Cell(40, 10, fmt.Sprintf("Email      : %s", invoice.Email))
 	pdf.Ln(8)
 
 	pdf.Cell(40, 10, fmt.Sprintf("Amount     : Rp %.2f", invoice.Amount))

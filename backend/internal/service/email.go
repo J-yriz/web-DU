@@ -1,6 +1,10 @@
 package service
 
-import "gopkg.in/gomail.v2"
+import (
+	"os"
+
+	"gopkg.in/gomail.v2"
+)
 
 type EmailService struct {
 	Host     string
@@ -11,10 +15,10 @@ type EmailService struct {
 
 func NewEmailService() *EmailService {
 	return &EmailService{
-		Host:     "smtp.gmail.com",
+		Host:     os.Getenv("SMTP_HOST"),
 		Port:     587,
-		Username: "your_email@gmail.com",
-		Password: "APP_PASSWORD", // pakai app password
+		Username: os.Getenv("SMTP_USER"),
+		Password: os.Getenv("SMTP_PASS"), // pakai app password
 	}
 }
 

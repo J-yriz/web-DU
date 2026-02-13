@@ -21,9 +21,9 @@ func NewInvoiceService() *InvoiceService {
 }
 
 func (s *InvoiceService) GenerateAndSendInvoice(email string, amount float64) (string, error) {
-	invoice := dto.Invoice{
+	invoice := dto.InvoiceResponse{
 		ID:        uuid.NewString(),
-		UserEmail: email,
+		Email: email,
 		Amount:    amount,
 		CreatedAt: time.Now(),
 	}
