@@ -8,6 +8,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { PaymentStatus } from '@/lib/types'
 import { getTransactionsSource } from '@/lib/data/transactions-source'
 import { filterTransactions, formatDateTime, formatRupiah, paginateTransactions } from '@/lib/func'
+import { SegmentedFilter } from '@/components/ui/SegmentedFilter'
 
 type StatusFilter = 'ALL' | PaymentStatus
 
@@ -47,36 +48,14 @@ export default function TransactionsList() {
     if (currentPage > totalPages) setCurrentPage(totalPages)
   }, [currentPage, totalPages])
 
-  const paginatedData = useMemo(
-    () => paginateTransactions(filteredData, currentPage, ITEMS_PER_PAGE),
-    [filteredData, currentPage],
-  )
+  const paginatedData = useMemo(() => paginateTransactions(filteredData, currentPage, ITEMS_PER_PAGE), [filteredData, currentPage])
 
   return (
     <div className="w-full space-y-6">
-      {/* Toolbar: Search + Filter */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <SearchForm
-          value={searchInput}
-          onChange={setSearchInput}
-          onSubmit={() => setSearchQuery(searchInput)}
-          placeholder="Cari ID transaksi atau nama kelas..."
-          className="md:flex-1"
-        />
-
-        <FilterSelect
-          id="status-filter"
-          label="Status"
-          value={statusFilter}
-          onChange={setStatusFilter}
-          options={STATUS_FILTER_OPTIONS}
-        />
+        <SearchForm value={searchInput} onChange={setSearchInput} onSubmit={() => setSearchQuery(searchInput)} placeholder="Cari ID transaksi atau nama kelas..." className="md:flex-1" />
       </div>
-
-      {/* Summary */}
-      <p className="text-xs font-medium text-slate-400">
-        Menampilkan {paginatedData.length} dari {filteredData.length} transaksi
-      </p>
+      <SegmentedFilter items={STATUS_FILTER_OPTIONS} value={statusFilter} onChange={setStatusFilter} variant="scroll" />
 
       {/* Cards */}
       {paginatedData.length === 0 ? (
@@ -84,7 +63,7 @@ export default function TransactionsList() {
           <p className="text-sm font-medium text-slate-400">Tidak ada transaksi yang ditemukan.</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-6">
           {paginatedData.map((item) => (
             <Card
               key={item.uid}
@@ -102,6 +81,10 @@ export default function TransactionsList() {
           ))}
         </div>
       )}
+
+      <p className="text-sm font-medium text-slate-400">
+        Menampilkan {paginatedData.length} dari {filteredData.length} transaksi
+      </p>
 
       {/* Pagination */}
       <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />

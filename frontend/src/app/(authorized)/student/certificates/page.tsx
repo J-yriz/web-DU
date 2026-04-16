@@ -1,12 +1,9 @@
-import React from 'react'
-import Section from './_components/Section'
+import StudentCertificatesSection from '@/components/student/StudentCertificatesSection'
 
-const page = () => {
+export default function Page() {
   return (
     <main>
-      <Section />
+      <StudentCertificatesSection />
     </main>
   )
 }
-
-export default page

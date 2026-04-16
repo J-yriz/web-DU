@@ -44,6 +44,8 @@ pnpm-lock.yaml
 
 # vercel
 .vercel
+.cursor
+.agents/*
 
 # typescript
 *.tsbuildinfo
@@ -52,6 +54,8 @@ next-env.d.ts
 # lock files
 package-lock.json
 *.lock
+pnpm-lock.yaml
+skills-lock.json
 
 .agents/*
 skills-lock.json

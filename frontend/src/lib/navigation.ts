@@ -57,7 +57,7 @@ export const studentNavigation: NavItem[] = [
     name: 'My Learning',
     icon: Layers,
     children: [
-      { name: 'Course', path: '/student/learning' },
+      { name: 'Courses & Modules', path: '/student/learning' },
       { name: 'Assignment', path: '/student/assignments' },
       { name: 'Attendance', path: '/student/attendance' },
     ],

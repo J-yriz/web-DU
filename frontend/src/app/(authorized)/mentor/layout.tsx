@@ -7,11 +7,12 @@ import { useSidebarContext } from '../layout'
 import { cn } from '@/lib/utils'
 import { getSidebarUser } from '@/lib/auth/sidebar-user'
 
-/** Attendance per-course: full-screen without sidebar */
+/** Attendance per-course and Course detail: full-screen without sidebar */
 function isMentorFullScreenRoute(pathname: string) {
   const segments = pathname.split('/').filter(Boolean)
   if (segments.length < 3 || segments[0] !== 'mentor') return false
   if (segments[1] === 'attendance' && segments.length >= 3) return true
+  if (segments[1] === 'courses' && segments.length >= 3) return true
   return false
 }
 

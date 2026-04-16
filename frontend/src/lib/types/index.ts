@@ -171,16 +171,54 @@ export interface ISubmissionItem {
   daysLate?: number
 }
 
+export type CourseLessonType = 'online' | 'offline'
+
+export interface ICourseLessonAttachment {
+  id: string
+  name: string
+  mimeType: string
+  size: number
+  kind: 'file' | 'image'
+  previewUrl?: string
+}
+
+export interface ICourseLessonBase {
+  id: string
+  title: string
+  order: number
+  type: CourseLessonType
+  description?: string
+  contentHtml?: string
+  embedLinks?: string[]
+  attachments?: ICourseLessonAttachment[]
+  isComplete?: boolean
+}
+
+export interface ICourseLessonOnline extends ICourseLessonBase {
+  type: 'online'
+  videoUrl?: string
+  meetingLink?: string
+}
+
+export interface ICourseLessonOffline extends ICourseLessonBase {
+  type: 'offline'
+  location?: string
+  scheduleNote?: string
+}
+
+export type ICourseLesson = ICourseLessonOnline | ICourseLessonOffline
+
 export interface ICourseModule {
   id: string
   title: string
   order: number
+  maxLessons: number
+  lessons: ICourseLesson[]
 }
 
 export interface ICourseModulesState {
-  version: 1
+  version: 2
   modules: ICourseModule[]
-  contents: Record<string, string>
 }
 
 /** Kursus milik mentor — metadata tampilan editor & daftar (sinkronkan dengan API kursus). */

@@ -13,9 +13,11 @@ import { Button } from './button'
 import { cn } from '@/lib/utils'
 
 interface CardProps {
+  children?: React.ReactNode
+  className?: string
   variant?: 'course' | 'resume' | 'transaction' | 'mentorCourse'
   image?: string
-  title: string
+  title?: string
   description?: string
   variantBadge?: BadgeVariant
   author?: {
@@ -77,6 +79,8 @@ const sizes = {
 }
 
 function Card({
+  children,
+  className,
   variant = 'course',
   image,
   title,
@@ -103,6 +107,12 @@ function Card({
   mentorOnStatusClick,
   mentorAssignmentsHref,
 }: CardProps) {
+  const safeTitle = title ?? 'Card'
+
+  if (children) {
+    return <div className={cn('rounded-2xl border border-border bg-card shadow-none', className)}>{children}</div>
+  }
+
   if (variant === 'mentorCourse') {
     const isLive = mentorPublished === true
     return (
@@ -110,9 +120,9 @@ function Card({
         <div className="relative aspect-16/10 w-full shrink-0">
           {image?.startsWith('data:') ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={image} alt={title} className="h-full w-full object-cover" />
+            <img src={image} alt={safeTitle} className="h-full w-full object-cover" />
           ) : image ? (
-            <Image src={image} alt={title} loading="lazy" fill className="object-cover" sizes="(max-width: 768px) 100vw, 384px" />
+            <Image src={image} alt={safeTitle} loading="lazy" fill className="object-cover" sizes="(max-width: 768px) 100vw, 384px" />
           ) : (
             <div className="flex h-full min-h-[140px] w-full items-center justify-center bg-slate-100 text-slate-300">
               <ReactIcon />
@@ -125,7 +135,7 @@ function Card({
 
         <div className="flex flex-1 flex-col gap-3 p-5">
           <div className="flex flex-col gap-1">
-            <h3 className="line-clamp-2 text-lg font-semibold leading-snug tracking-tight text-slate-900">{title}</h3>
+            <h3 className="line-clamp-2 text-lg font-semibold leading-snug tracking-tight text-slate-900">{safeTitle}</h3>
             {mentorHeader && <p className="line-clamp-1 text-sm font-medium text-primary">{mentorHeader}</p>}
             {description && <p className="line-clamp-2 text-sm leading-relaxed text-slate-500">{description}</p>}
           </div>
@@ -146,33 +156,33 @@ function Card({
             </div>
           </div>
 
-          <div
-            className={cn(
-              'mt-auto flex flex-wrap items-stretch gap-2 border-t border-slate-100 pt-4 sm:items-center sm:justify-end',
-              mentorOnStatusClick && 'sm:justify-between'
-            )}>
+          <div className={cn('mt-auto flex flex-wrap items-stretch gap-2 border-t border-slate-100 pt-4 sm:items-center sm:justify-end', mentorOnStatusClick && 'sm:justify-between')}>
             {mentorOnStatusClick ? (
               <Button
                 type="button"
                 variant={isLive ? 'outline' : 'default'}
                 size="sm"
-                className={cn(
-                  'h-9 rounded-xl px-4 text-xs font-semibold shadow-none',
-                  isLive &&
-                    'border-amber-200 bg-amber-50/80 text-amber-900 hover:bg-amber-100/90'
-                )}
+                className={cn('h-9 rounded-xl px-4 text-xs font-semibold shadow-none', isLive && 'border-amber-200 bg-amber-50/80 text-amber-900 hover:bg-amber-100/90')}
                 onClick={mentorOnStatusClick}>
                 {isLive ? 'Jadikan draf' : 'Terbitkan'}
               </Button>
             ) : null}
             <div className="flex flex-wrap gap-2 sm:ml-auto sm:justify-end">
               {mentorAssignmentsHref ? (
-                <Button asChild variant="outline" size="sm" className="h-9 rounded-xl border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-none hover:bg-slate-50 hover:text-slate-900">
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="h-9 rounded-xl border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-none hover:bg-slate-50 hover:text-slate-900">
                   <Link href={mentorAssignmentsHref}>Tugas</Link>
                 </Button>
               ) : null}
               {detailHref ? (
-                <Button asChild variant="outline" size="sm" className="h-9 rounded-xl border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-none hover:bg-slate-50 hover:text-slate-900">
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="h-9 rounded-xl border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-none hover:bg-slate-50 hover:text-slate-900">
                   <Link href={detailHref}>Kelola kursus</Link>
                 </Button>
               ) : null}
@@ -185,11 +195,11 @@ function Card({
 
   if (variant === 'transaction') {
     return (
-      <div className="flex w-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] sm:flex-row">
+      <div className="flex w-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white  sm:flex-row transition-all duration-300 hover:shadow-sm shadow-xs">
         {/* Left — Image */}
-        <div className="relative h-48 w-full shrink-0 sm:h-auto sm:w-52 md:w-60">
+        <div className="relative h-48 w-full shrink-0 sm:h-auto sm:w-52 md:w-80">
           {image ? (
-            <Image src={image} alt={title} fill className="object-cover" sizes="(max-width: 640px) 100vw, 240px" />
+            <Image src={image} alt={safeTitle} fill className="object-cover" sizes="(max-width: 640px) 100vw, 240px" />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-slate-100 text-slate-300">
               <ReactIcon />
@@ -209,7 +219,7 @@ function Card({
           </div>
 
           {/* Title */}
-          <h3 className="mb-1.5 line-clamp-2 text-base font-semibold leading-snug text-slate-900 md:text-lg">{title}</h3>
+          <h3 className="mb-1.5 line-clamp-2 text-base font-semibold leading-snug text-slate-900 md:text-lg">{safeTitle}</h3>
 
           {/* Meta info row */}
           <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-slate-500">
@@ -241,11 +251,11 @@ function Card({
 
   if (variant === 'resume') {
     return (
-      <div className="flex h-full w-full flex-col overflow-hidden rounded-[10px] border border-slate-200/80 bg-white transition-colors hover:border-slate-300/90">
+      <div className="flex shadow-xs h-full w-full flex-col overflow-hidden rounded-[10px] border border-slate-200/80 bg-white  hover:shadow-sm">
         {/* Image Content */}
         <div className="relative aspect-video w-full shrink-0 rounded-[10px] min-h-[203px]">
           {image ? (
-            <Image src={image} alt={title} loading="lazy" fill className="rounded-[10px] object-cover" sizes="(max-width: 768px) 100vw, 384px" />
+            <Image src={image} alt={safeTitle} loading="lazy" fill className="rounded-[10px] object-cover" sizes="(max-width: 768px) 100vw, 384px" />
           ) : (
             <div className="flex h-full w-full items-center justify-center rounded-[10px] bg-[#D2E1ED] text-[#00D8FF]">
               <ReactIcon />
@@ -264,7 +274,7 @@ function Card({
           )}
 
           <div className="mb-4 flex flex-col">
-            <h3 className="mb-1 line-clamp-2 text-lg font-bold leading-snug text-slate-900">{title}</h3>
+            <h3 className="mb-1 line-clamp-2 text-lg font-bold leading-snug text-slate-900">{safeTitle}</h3>
             {module && <p className="mb-2 text-xs font-semibold text-slate-400 tracking-wide uppercase">{module}</p>}
 
             {description && <p className="line-clamp-2 text-sm leading-[1.4] font-normal text-slate-500">{description}</p>}
@@ -310,7 +320,7 @@ function Card({
       {/* Image Content*/}
       <div className={`relative aspect-video w-full shrink-0 rounded-[10px] ${sizes.imageWrapper[size]}`}>
         {image ? (
-          <Image src={image} alt={title} loading="lazy" fill className="rounded-[10px] object-cover" sizes="(max-width: 768px) 100vw, 384px" />
+          <Image src={image} alt={safeTitle} loading="lazy" fill className="rounded-[10px] object-cover" sizes="(max-width: 768px) 100vw, 384px" />
         ) : (
           <div className="flex h-full w-full items-center justify-center rounded-[10px] bg-[#D2E1ED] text-[#00D8FF]">
             <ReactIcon />
@@ -329,7 +339,7 @@ function Card({
         )}
 
         <div className="mb-5 flex flex-col w-full">
-          <h3 className={`mb-1.5 line-clamp-2 leading-snug font-bold text-slate-900 ${sizes.title[size]}`}>{title}</h3>
+          <h3 className={`mb-1.5 line-clamp-2 leading-snug font-bold text-slate-900 ${sizes.title[size]}`}>{safeTitle}</h3>
           {module && <p className="mb-2 text-xs font-semibold text-slate-400 tracking-wide uppercase">{module}</p>}
 
           {description && <p className={`line-clamp-2 grow leading-[1.4] font-normal text-slate-500 ${sizes.description[size]}`}>{description}</p>}
@@ -353,8 +363,7 @@ function Card({
 }
 
 /** Panel permukaan standar (section berborder) — dipakai ulang di dashboard mentor, hub, dll. */
-export const CARD_PANEL_CLASS =
-  'rounded-2xl border border-slate-200/90 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]'
+export const CARD_PANEL_CLASS = 'rounded-2xl border border-slate-200/90 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]'
 
 export function CardPanel({ className, ...props }: React.ComponentProps<'div'>) {
   return <div className={cn(CARD_PANEL_CLASS, 'p-5', className)} {...props} />
@@ -390,42 +399,37 @@ export type StatCardProps = {
   className?: string
 } & VariantProps<typeof statCardShellVariants>
 
-export function StatCard({
-  title,
-  label,
-  value,
-  icon,
-  themeIcon,
-  variant,
-  size,
-  colorClass,
-  bgClass,
-  className,
-}: StatCardProps) {
+export function StatCard({ title, label, value, icon, themeIcon, variant, size, colorClass, bgClass, className }: StatCardProps) {
   const displayLabel = label || title
   return (
     <div className={cn(statCardShellVariants({ variant, size }), className)}>
       <div className="flex flex-col">
-        <span
-          className={cn(
-            'mb-1 font-semibold uppercase tracking-wider',
-            variant === 'legacy' ? 'text-lg text-gray-500' : 'text-xs text-slate-400'
-          )}>
-          {displayLabel}
-        </span>
+        <span className={cn('mb-1 font-semibold uppercase tracking-wider', variant === 'legacy' ? 'text-lg text-gray-500' : 'text-xs text-slate-400')}>{displayLabel}</span>
         <span className={cn('font-bold', variant === 'legacy' ? 'text-xl text-gray-800' : 'text-2xl text-slate-900')}>{value}</span>
       </div>
-      {icon && (
-        <div
-          className={cn(
-            'flex shrink-0 items-center justify-center rounded-xl',
-            variant === 'legacy' ? `p-2 bg-blue-100 ${themeIcon}` : `h-11 w-11 bg-primary/10 text-primary`
-          )}>
-          {icon}
-        </div>
-      )}
+      {icon && <div className={cn('flex shrink-0 items-center justify-center rounded-xl', variant === 'legacy' ? `p-2 bg-blue-100 ${themeIcon}` : `h-11 w-11 bg-primary/10 text-primary`)}>{icon}</div>}
     </div>
   )
+}
+
+export function CardHeader({ className, ...props }: React.ComponentProps<'div'>) {
+  return <div className={cn('flex flex-col gap-2 p-6', className)} {...props} />
+}
+
+export function CardTitle({ className, ...props }: React.ComponentProps<'h3'>) {
+  return <h3 className={cn('text-lg font-semibold tracking-tight text-foreground', className)} {...props} />
+}
+
+export function CardDescription({ className, ...props }: React.ComponentProps<'p'>) {
+  return <p className={cn('text-sm text-muted-foreground', className)} {...props} />
+}
+
+export function CardContent({ className, ...props }: React.ComponentProps<'div'>) {
+  return <div className={cn('p-6 pt-0', className)} {...props} />
+}
+
+export function CardFooter({ className, ...props }: React.ComponentProps<'div'>) {
+  return <div className={cn('flex items-center p-6 pt-0', className)} {...props} />
 }
 
 export { Card }

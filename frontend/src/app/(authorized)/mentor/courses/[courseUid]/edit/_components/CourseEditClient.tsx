@@ -1,33 +1,18 @@
 'use client'
 
-import dynamic from 'next/dynamic'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
-import { PageHeader } from '@/components/layout/PageHeader'
+import { ArrowLeft, Pencil, Save, Upload } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import type { ICourseModule, IMentorCourse } from '@/lib/types'
-import {
-  getMergedMentorCourses,
-  getSessionCourseModules,
-  getSessionCourseMeta,
-  publishMentorCourse,
-  setSessionCourseModules,
-  setSessionEditorContent,
-  upsertExtraCourse,
-} from '@/lib/mentorCourseStorage'
+import { Separator } from '@/components/ui/separator'
+import type { ICourseLesson, ICourseModule, IMentorCourse } from '@/lib/types'
+import { getMergedMentorCourses, getSessionCourseModules, getSessionCourseMeta, publishMentorCourse, setSessionCourseModules, upsertExtraCourse } from '@/lib/mentorCourseStorage'
 import { useConfirm } from '@/components/feedback/ConfirmProvider'
 import { notifyPublished, notifySaved } from '@/lib/notify'
 import { CourseModuleOutline } from './CourseModuleOutline'
-
-const CourseTipTapEditor = dynamic(
-  () => import('./CourseTipTapEditor').then((m) => ({ default: m.CourseTipTapEditor })),
-  {
-    ssr: false,
-    loading: () => <div className="min-h-[240px] animate-pulse rounded-xl border border-slate-100 bg-slate-50" />,
-  }
-)
+import { ModuleEditor } from './modules/ModuleEditor'
 
 type CourseEditClientProps = {
   courseUid: string
@@ -39,10 +24,8 @@ export function CourseEditClient({ courseUid, initialModuleId }: CourseEditClien
   const router = useRouter()
   const [course, setCourse] = useState<IMentorCourse | null | undefined>(undefined)
   const [modules, setModules] = useState<ICourseModule[]>([])
-  const [moduleContents, setModuleContents] = useState<Record<string, string>>({})
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null)
-  const [editorHtml, setEditorHtml] = useState('')
-  const [editorReady, setEditorReady] = useState(false)
+  const [activeLessonId, setActiveLessonId] = useState<string | null>(null)
 
   const createModuleId = () => {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID()
@@ -58,10 +41,7 @@ export function CourseEditClient({ courseUid, initialModuleId }: CourseEditClien
     const initialActiveModule = selectedFromQuery ?? storedModules.modules[0]?.id ?? null
 
     setModules(storedModules.modules)
-    setModuleContents(storedModules.contents)
     setActiveModuleId(initialActiveModule)
-    setEditorHtml(initialActiveModule ? storedModules.contents[initialActiveModule] ?? '' : '')
-    setEditorReady(true)
 
     if (fromList) {
       setCourse(fromList)
@@ -84,21 +64,10 @@ export function CourseEditClient({ courseUid, initialModuleId }: CourseEditClien
     }
   }, [courseUid, initialModuleId])
 
-  const buildNextContents = (currentHtml: string) => {
-    if (!activeModuleId) return moduleContents
-    return {
-      ...moduleContents,
-      [activeModuleId]: currentHtml,
-    }
-  }
-
   const handleSave = (opts?: { silent?: boolean; redirect?: boolean }) => {
-    if (!modules.length || !activeModuleId) return
-    const nextContents = buildNextContents(editorHtml)
-    setModuleContents(nextContents)
-    setSessionCourseModules(courseUid, { version: 1, modules, contents: nextContents })
-    setSessionEditorContent(courseUid, nextContents[activeModuleId] ?? '')
-    if (!opts?.silent) notifySaved("Perubahan modul berhasil disimpan.")
+    if (!modules.length) return
+    setSessionCourseModules(courseUid, { version: 2, modules })
+    if (!opts?.silent) notifySaved('Perubahan modul dan lesson berhasil disimpan.')
     if (opts?.redirect !== false) {
       router.push(`/mentor/courses/${courseUid}`)
       router.refresh()
@@ -107,9 +76,9 @@ export function CourseEditClient({ courseUid, initialModuleId }: CourseEditClien
 
   const handleSaveClick = async () => {
     const ok = await confirm({
-      title: "Simpan modul?",
-      description: "Konten modul yang sedang diedit akan disimpan ke sesi lokal.",
-      confirmLabel: "Simpan",
+      title: 'Simpan modul?',
+      description: 'Perubahan modul dan lesson yang sedang diedit akan disimpan ke sesi lokal.',
+      confirmLabel: 'Simpan',
     })
     if (!ok) return
     handleSave({ redirect: true })
@@ -134,47 +103,90 @@ export function CourseEditClient({ courseUid, initialModuleId }: CourseEditClien
 
   const handlePublishClick = async () => {
     const ok = await confirm({
-      title: "Publikasikan kursus?",
-      description: "Kursus akan ditandai aktif dan muncul di daftar kursus mentor.",
-      confirmLabel: "Publish",
+      title: 'Publikasikan kursus?',
+      description: 'Kursus akan ditandai aktif dan muncul di daftar kursus mentor.',
+      confirmLabel: 'Publish',
     })
     if (!ok) return
     handlePublish()
   }
 
-  const persistEditorBuffer = (html: string) => {
-    setEditorHtml(html)
+  const handleSelectModule = (targetModuleId: string) => {
+    if (targetModuleId === activeModuleId && activeLessonId === null) return
+    setActiveModuleId(targetModuleId)
+    setActiveLessonId(null)
   }
 
-  const handleSelectModule = (targetModuleId: string) => {
-    if (targetModuleId === activeModuleId) return
-    const nextContents = buildNextContents(editorHtml)
-    setModuleContents(nextContents)
+  const handleSelectLesson = (targetModuleId: string, targetLessonId: string) => {
     setActiveModuleId(targetModuleId)
-    setEditorHtml(nextContents[targetModuleId] ?? '')
+    setActiveLessonId(targetLessonId)
   }
 
   const handleAddModule = () => {
-    const nextContents = buildNextContents(editorHtml)
     const nextOrder = modules.length + 1
     const newModule: ICourseModule = {
       id: createModuleId(),
       title: `Modul ${nextOrder}`,
       order: nextOrder,
+      maxLessons: 4,
+      lessons: [
+        {
+          id: `lesson_${Date.now().toString(36)}`,
+          title: 'Lesson 1',
+          order: 1,
+          type: 'online',
+          description: '',
+          contentHtml: '<p></p>',
+          embedLinks: [],
+          attachments: [],
+          videoUrl: '',
+          meetingLink: '',
+        },
+      ],
     }
     const nextModules = [...modules, newModule]
     setModules(nextModules)
-    setModuleContents({
-      ...nextContents,
-      [newModule.id]: '',
-    })
     setActiveModuleId(newModule.id)
-    setEditorHtml('')
+  }
+
+  const handleRenameModule = (moduleId: string, title: string) => {
+    setModules((prev) => prev.map((module) => (module.id === moduleId ? { ...module, title } : module)))
+  }
+
+  const activeModule = modules.find((module) => module.id === activeModuleId) ?? null
+
+  const handleUpdateModule = (nextModule: ICourseModule) => {
+    setModules((prev) => prev.map((entry) => (entry.id === nextModule.id ? nextModule : entry)))
+  }
+
+  const handleAddLesson = () => {
+    if (!activeModule) return
+    if (activeModule.lessons.length >= activeModule.maxLessons) return
+    const nextOrder = activeModule.lessons.length + 1
+    const nextModule: ICourseModule = {
+      ...activeModule,
+      lessons: [
+        ...activeModule.lessons,
+        {
+          id: `lesson_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
+          title: `Lesson ${nextOrder}`,
+          order: nextOrder,
+          type: 'online',
+          description: '',
+          contentHtml: '<p></p>',
+          embedLinks: [],
+          attachments: [],
+          videoUrl: '',
+          meetingLink: '',
+        },
+      ],
+    }
+    handleUpdateModule(nextModule)
   }
 
   if (course === undefined) {
     return (
-      <section className="flex flex-col gap-4 py-10">
+      <section className="flex flex-col gap-4 px-4 py-10 sm:px-6 lg:px-8">
         <p className="text-sm text-slate-500">Memuat…</p>
       </section>
     )
@@ -182,9 +194,9 @@ export function CourseEditClient({ courseUid, initialModuleId }: CourseEditClien
 
   if (course === null) {
     return (
-      <section className="flex flex-col gap-4 py-10">
-        <p className="text-slate-600">Kursus tidak ditemukan. Akses editor hanya dari daftar kursus atau setelah membuat kursus baru.</p>
-        <Button asChild variant="outline" className="w-fit rounded-xl">
+      <section className="flex flex-col gap-4 px-4 py-10 sm:px-6 lg:px-8">
+        <p className="text-sm text-slate-600">Kursus tidak ditemukan. Akses editor hanya dari daftar kursus atau setelah membuat kursus baru.</p>
+        <Button asChild variant="outline" className="w-fit rounded-xl shadow-none">
           <Link href="/mentor/courses">Kembali ke daftar</Link>
         </Button>
       </section>
@@ -192,62 +204,94 @@ export function CourseEditClient({ courseUid, initialModuleId }: CourseEditClien
   }
 
   return (
-    <section className="flex w-full flex-col gap-8">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex items-start gap-3">
-          <Button asChild variant="outline" size="sm" className="mt-1 gap-2 rounded-lg border-border bg-card font-medium text-muted-foreground shadow-none hover:bg-muted/60 hover:text-foreground">
-            <Link href={`/mentor/courses/${courseUid}`}>
-              <ArrowLeft className="size-3.5 opacity-80" aria-hidden />
-              Kembali
-            </Link>
-          </Button>
-          <PageHeader title={course.title} subtitle={course.header} />
-        </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-3">
-          <span
-            className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
-              course.published ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-slate-100 text-slate-600'
-            }`}>
-            {course.published ? 'Aktif' : 'Belum dipublikasikan'}
-          </span>
-          {!course.published && (
-            <Button type="button" className="rounded-xl" onClick={() => void handlePublishClick()}>
-              Publish
+    <section className="flex w-full flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
+      {/* Back navigation */}
+      <Button asChild variant="ghost" size="sm" className="w-fit gap-2 rounded-xl text-slate-500 hover:text-slate-900">
+        <Link href={`/mentor/courses/${courseUid}`}>
+          <ArrowLeft className="size-4 sm:size-[18px]" />
+          <span className="text-xs sm:text-sm">Kembali ke kursus</span>
+        </Link>
+      </Button>
+
+      {/* Course header */}
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary sm:size-12">
+              <Pencil className="size-5 sm:size-6" />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">{course.title}</h1>
+                <Badge variant={course.published ? 'mentorLive' : 'mentorDraft'} className="rounded-full px-2.5">
+                  {course.published ? 'Aktif' : 'Draf'}
+                </Badge>
+              </div>
+              <p className="max-w-xl text-xs leading-relaxed text-slate-500 sm:text-sm">{course.header}</p>
+            </div>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2.5">
+            {!course.published && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 rounded-xl border-slate-200 bg-white text-xs font-semibold text-slate-600 shadow-none hover:bg-slate-50 hover:text-slate-900 sm:h-10 sm:text-sm"
+                onClick={() => void handlePublishClick()}>
+                <Upload className="size-4 sm:size-[18px]" />
+                Publish
+              </Button>
+            )}
+            <Button
+              type="button"
+              size="sm"
+              className="h-9 rounded-xl text-xs font-semibold shadow-none sm:h-10 sm:text-sm"
+              onClick={() => void handleSaveClick()}>
+              <Save className="size-4 sm:size-[18px]" />
+              Simpan
             </Button>
-          )}
+          </div>
         </div>
       </div>
 
+      {/* Course image banner */}
       {course.image && (
-        <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+        <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={course.image} alt="" className="max-h-56 w-full object-cover" />
+          <img src={course.image} alt="" className="max-h-48 w-full object-cover" />
         </div>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
-        <div className="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-4 md:p-5">
-          <div className="space-y-2">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Konten modul</h2>
-            <p className="text-sm leading-6 text-slate-500">Fokuskan materi per modul. Sisipkan video dengan tombol YouTube lalu tempel URL.</p>
-            {activeModuleId && (
-              <p className="text-sm font-medium text-slate-700">
-                Sedang mengedit: <span className="text-slate-900">{modules.find((module) => module.id === activeModuleId)?.title}</span>
-              </p>
-            )}
-          </div>
+      {/* Editor + Outline grid */}
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6">
+          <ModuleEditor module={activeModule} activeLessonId={activeLessonId} onUpdateModule={handleUpdateModule} onAddLesson={handleAddLesson} />
 
-          {editorReady && activeModuleId && <CourseTipTapEditor key={activeModuleId} initialContent={editorHtml} onChange={persistEditorBuffer} />}
+          <Separator className="my-6 bg-slate-100" />
 
-          <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-slate-500">Semua perubahan disimpan ke sesi lokal setelah menekan tombol Simpan.</p>
-            <Button type="button" className="rounded-xl px-5" onClick={() => void handleSaveClick()}>
-              Save
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-[11px] italic text-slate-400 sm:text-xs">Semua perubahan disimpan ke sesi lokal setelah menekan Simpan.</p>
+            <Button
+              type="button"
+              size="sm"
+              className="h-9 rounded-xl text-xs font-semibold shadow-none sm:h-10 sm:text-sm"
+              onClick={() => void handleSaveClick()}>
+              <Save className="size-4 sm:size-[18px]" />
+              Simpan Perubahan
             </Button>
           </div>
         </div>
 
-        <CourseModuleOutline modules={modules} activeModuleId={activeModuleId} onSelectModule={handleSelectModule} onAddModule={handleAddModule} />
+        <CourseModuleOutline
+          modules={modules}
+          activeModuleId={activeModuleId}
+          activeLessonId={activeLessonId}
+          onSelectModule={handleSelectModule}
+          onSelectLesson={handleSelectLesson}
+          onAddModule={handleAddModule}
+          onRenameModule={handleRenameModule}
+        />
       </div>
     </section>
   )
